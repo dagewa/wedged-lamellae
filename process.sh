@@ -1,6 +1,22 @@
 #!/bin/bash
 set -e
 
+# Check script input
+if [ "$#" -ne 1 ]; then
+    echo "You must supply the location of the data directory (nt21004-140/) only"
+    exit 1
+fi
+
+# Set up directories
+PROCDIR=$(pwd)
+SCRIPTDIR="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+DATAROOT=$(realpath "$1")
+if [ ! -d "$DATAROOT" ]; then
+    echo "$DATAROOT is not found"
+    exit 1
+fi
+
+# Write a common mask definition at the top level of processing
 cat > mask.phil <<+
 untrusted {
   polygon = 2 958 3 1094 932 1088 998 1121 1051 1133 1135 1128 1185 1115 1226 \
@@ -9,11 +25,7 @@ untrusted {
 }
 +
 
-# Set up directories
-PROCDIR=$(pwd)
-SCRIPTDIR="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-DATAROOT="$SCRIPTDIR"/supervisor_evb_nt23169-1/nt21004-140
-
+# Integrate a single dataset
 integrate () {
     DATADIR=$1
     NAME=$2
@@ -52,10 +64,10 @@ integrate () {
        prediction.d_min=1.95 nproc=4\
        sigma_b="$SIGMA_B" sigma_m="$SIGMA_M" > /dev/null
 
-    # export MTZ (for pointless / aimless)
+    # Export MTZ (for pointless / aimless scaling)
     dials.export integrated.expt integrated.refl
 
-    # export unscaled but merged MTZ (for qq-plot)
+    # Export unscaled but merged MTZ (for qq-plot)
     aimless \
         hklin integrated.mtz hklout unscaled_merged.mtz > onlymerge.log <<+
 onlymerge
@@ -64,8 +76,10 @@ onlymerge
     cd "$PROCDIR"
 }
 
-# Integrate with pedestal of -100. For lamella_3 this maximises outer shell
-# CC1/2. Select correct datasets for thin, mid and thick
+# Integrate with pedestal of -100. I tried various pedestal levels using
+# the lamella_3 datasets and found that this maximised the outer shell CC1/2.
+# The assignment of datasets for thin, mid and thick come from annotations on
+# the PowerPoint file
 
 # lamella1
 integrate "$DATAROOT"/lamella_1_tilt_1/Images-Disc1/2019-04-24-155637.255\
@@ -120,8 +134,8 @@ dials_scale () {
 }
 
 aimless_scale () {
-    # Scale datasets for one lamella together, then split them to produce
-    # merged MTZs
+    # Scale datasets for one lamella together, then also merge just the
+    # individual thicknesses
     DIR=$1
     PREFIX=$2
     HIRES=$3
@@ -131,23 +145,62 @@ aimless_scale () {
     mkdir -p $DIR
     cd $DIR
 
+    # Pointless makes a mess of combining the files for lamella_2. Use rebatch
+    # first to ensure we get 3 runs
+    rebatch hklin "$PROCDIR/${PREFIX}mid"/integrated.mtz \
+        hklout mid.mtz >/dev/null <<+
+batch add 1000
++
+
+    rebatch hklin "$PROCDIR/${PREFIX}mid"/integrated.mtz \
+        hklout thin.mtz >/dev/null <<+
+batch add 2000
++
+
     pointless\
         hklin "$PROCDIR/${PREFIX}thick"/integrated.mtz\
-        hklin "$PROCDIR/${PREFIX}mid"/integrated.mtz\
-        hklin "$PROCDIR/${PREFIX}thin"/integrated.mtz\
+        hklin mid.mtz\
+        hklin thin.mtz\
         hklout sorted.mtz > pointless.log <<+
 ALLOW OUTOFSEQUENCEFILES
 COPY
 TOLERANCE 5
+RUN BYFILE
 +
+
+rm mid.mtz thin.mtz
+
+# Everything together
     aimless\
         hklin sorted.mtz hklout scaled.mtz > aimless.log <<+
 resolution $HIRES
 exclude batches 75 to 81
 exclude batches 1075 to 1081
 exclude batches 2075 to 2081
+output unmerged
 +
-# TODO exclude batches and split MTZs.
+
+# Just merge the reflections from the thick part of the crystal
+    aimless\
+        hklin scaled_unmerged.mtz hklout "${PREFIX}"thick.mtz > /dev/null <<+
+exclude batches 75 to 3000
+onlymerge
++
+
+# Just merge the reflections from the mid part of the crystal
+    aimless\
+        hklin scaled_unmerged.mtz hklout "${PREFIX}"mid.mtz > /dev/null <<+
+exclude batches 1 to 100
+exclude batches 2000 to 3000
+onlymerge
++
+
+# Just merge the reflections from the thin part of the crystal
+    aimless\
+        hklin scaled_unmerged.mtz hklout "${PREFIX}"thin.mtz > /dev/null <<+
+exclude batches 1 to 1100
+onlymerge
++
 
     cd $PROCDIR
 }
@@ -168,9 +221,13 @@ dials.python "$SCRIPTDIR"/qqplot.py lamella_2_thin/unscaled_merged.mtz\
 dials.python "$SCRIPTDIR"/qqplot.py lamella_3_thin/unscaled_merged.mtz\
     lamella_3_thick/unscaled_merged.mtz lamella3_unscaled
 
-dials.python "$SCRIPTDIR"/qqplot.py scale1/lamella_1_thin.mtz scale1/lamella_1_thick.mtz lamella1
-dials.python "$SCRIPTDIR"/qqplot.py scale2/lamella_2_thin.mtz scale2/lamella_2_thick.mtz lamella2
-dials.python "$SCRIPTDIR"/qqplot.py scale3/lamella_3_thin.mtz scale3/lamella_3_thick.mtz lamella3
+dials.python "$SCRIPTDIR"/qqplot.py scale1/lamella_1_thin.mtz scale1/lamella_1_thick.mtz lamella1_dials
+dials.python "$SCRIPTDIR"/qqplot.py scale2/lamella_2_thin.mtz scale2/lamella_2_thick.mtz lamella2_dials
+dials.python "$SCRIPTDIR"/qqplot.py scale3/lamella_3_thin.mtz scale3/lamella_3_thick.mtz lamella3_dials
+
+dials.python "$SCRIPTDIR"/qqplot.py aimless1/lamella_1_thin.mtz aimless1/lamella_1_thick.mtz lamella1_aimless
+dials.python "$SCRIPTDIR"/qqplot.py aimless2/lamella_2_thin.mtz aimless2/lamella_2_thick.mtz lamella2_aimless
+dials.python "$SCRIPTDIR"/qqplot.py aimless3/lamella_3_thin.mtz aimless3/lamella_3_thick.mtz lamella3_aimless
 
 refine () {
   # refine data against model to make Fo vs Fc plots
