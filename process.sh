@@ -76,36 +76,6 @@ onlymerge
     cd "$PROCDIR"
 }
 
-# Integrate with pedestal of -100. I tried various pedestal levels using
-# the lamella_3 datasets and found that this maximised the outer shell CC1/2.
-# The assignment of datasets for thin, mid and thick come from annotations on
-# the PowerPoint file
-
-# lamella1
-integrate "$DATAROOT"/lamella_1_tilt_1/Images-Disc1/2019-04-24-155637.255\
-    lamella_1_thick "1017,1080" -100 0.0025 0.2
-integrate "$DATAROOT"/lamella_1_tilt_2/Images-Disc1/2019-04-24-160547.199\
-    lamella_1_mid "1014,1082" -100 0.0025 0.2
-integrate "$DATAROOT"/lamella_1_tilt_3/Images-Disc1/2019-04-24-161139.085\
-    lamella_1_thin "1012,1080" -100 0.0025 0.2
-
-# lamella2
-integrate "$DATAROOT"/lamella_2_tilt_1/Images-Disc1/2019-04-24-141357.568\
-    lamella_2_thin "1013,1033" -100 0.002 0.37
-integrate "$DATAROOT"/lamella_2_tilt_2/Images-Disc1/2019-04-24-142502.849\
-    lamella_2_mid "1016,1037" -100 0.002 0.37
-integrate "$DATAROOT"/lamella_2_tilt_3/Images-Disc1/2019-04-24-144238.540\
-    lamella_2_thick "1020,1090" -100 0.002 0.37
-
-# lamella3
-integrate "$DATAROOT"/lamella_3_tilt_1/Images-Disc1/2019-04-24-150408.105\
-    lamella_3_thin "1012,1084" -100 0.002 0.3
-integrate "$DATAROOT"/lamella_3_tilt_2/Images-Disc1/2019-04-24-153550.410\
-    lamella_3_mid "1012,1084" -100 0.002 0.3
-integrate "$DATAROOT"/lamella_3_tilt_3/Images-Disc1/2019-04-24-154246.731\
-    lamella_3_thick "1013,1080" -100 0.002 0.3
-
-
 dials_scale () {
     # Scale datasets for one lamella together, then split them to produce
     # merged MTZs
@@ -128,6 +98,14 @@ dials_scale () {
     dials.merge split_0.expt split_0.refl output.mtz="${PREFIX}thick.mtz"
     dials.merge split_1.expt split_1.refl output.mtz="${PREFIX}mid.mtz"
     dials.merge split_2.expt split_2.refl output.mtz="${PREFIX}thin.mtz"
+
+    # Truncate to get Fs for refinement
+    ctruncate -hklin "${PREFIX}thick.mtz" -hklout thick.mtz \
+        -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_thick.log
+    ctruncate -hklin "${PREFIX}mid.mtz" -hklout mid.mtz \
+        -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_mid.log
+    ctruncate -hklin "${PREFIX}thin.mtz" -hklout thin.mtz \
+        -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_thin.log
 
     cd $PROCDIR
 
@@ -168,9 +146,9 @@ TOLERANCE 5
 RUN BYFILE
 +
 
-rm mid.mtz thin.mtz
+    rm mid.mtz thin.mtz
 
-# Everything together
+    # Everything together
     aimless\
         hklin sorted.mtz hklout scaled.mtz > aimless.log <<+
 resolution $HIRES
@@ -180,14 +158,14 @@ exclude batches 2075 to 2081
 output unmerged
 +
 
-# Just merge the reflections from the thick part of the crystal
+    # Just merge the reflections from the thick part of the crystal
     aimless\
         hklin scaled_unmerged.mtz hklout "${PREFIX}"thick.mtz > /dev/null <<+
 exclude batches 75 to 3000
 onlymerge
 +
 
-# Just merge the reflections from the mid part of the crystal
+    # Just merge the reflections from the mid part of the crystal
     aimless\
         hklin scaled_unmerged.mtz hklout "${PREFIX}"mid.mtz > /dev/null <<+
 exclude batches 1 to 100
@@ -195,15 +173,81 @@ exclude batches 2000 to 3000
 onlymerge
 +
 
-# Just merge the reflections from the thin part of the crystal
+    # Just merge the reflections from the thin part of the crystal
     aimless\
         hklin scaled_unmerged.mtz hklout "${PREFIX}"thin.mtz > /dev/null <<+
 exclude batches 1 to 1100
 onlymerge
 +
 
+    # Truncate to get Fs for refinement
+    ctruncate -hklin "${PREFIX}thick.mtz" -hklout thick.mtz \
+        -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_thick.log
+    ctruncate -hklin "${PREFIX}mid.mtz" -hklout mid.mtz \
+        -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_mid.log
+    ctruncate -hklin "${PREFIX}thin.mtz" -hklout thin.mtz \
+        -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_thin.log
+
     cd $PROCDIR
 }
+
+# Refine the model 6zeu.cif against thick, mid and thin datasets for one lamella
+# then produce Fo vs Fc plots.
+refine () {
+    SCALEDIR=$1
+
+    echo "Refining datasets in $SCALEDIR"
+    mkdir -p "$PROCDIR"/"$SCALEDIR"_refine
+    cd "$PROCDIR"/"$SCALEDIR"_refine
+
+    for name in thick mid thin
+    do
+        echo "$name"
+        refmac5 xyzin "$SCRIPTDIR"/6zeu.cif xyzout refmac-"$name".pdb\
+            hklin "$PROCDIR"/"$SCALEDIR"/"$name".mtz\
+            hklout refmac-"$name".mtz > refmac-"$name".log <<+
+NCYC 10
+SOURCE ELECTRON MB
+LABIN FP=F SIGFP=SIGF
++
+    dials.plot_Fo_vs_Fc hklin=refmac-"$name".mtz
+    done
+
+    cd "$PROCDIR"
+}
+
+###################
+# DATA PROCESSING #
+###################
+
+# Integrate with pedestal of -100. I tried various pedestal levels using
+# the lamella_3 datasets and found that this maximised the outer shell CC1/2.
+# The assignment of datasets for thin, mid and thick come from annotations on
+# the PowerPoint file
+
+# lamella1
+integrate "$DATAROOT"/lamella_1_tilt_1/Images-Disc1/2019-04-24-155637.255\
+    lamella_1_thick "1017,1080" -100 0.0025 0.2
+integrate "$DATAROOT"/lamella_1_tilt_2/Images-Disc1/2019-04-24-160547.199\
+    lamella_1_mid "1014,1082" -100 0.0025 0.2
+integrate "$DATAROOT"/lamella_1_tilt_3/Images-Disc1/2019-04-24-161139.085\
+    lamella_1_thin "1012,1080" -100 0.0025 0.2
+
+# lamella2
+integrate "$DATAROOT"/lamella_2_tilt_1/Images-Disc1/2019-04-24-141357.568\
+    lamella_2_thin "1013,1033" -100 0.002 0.37
+integrate "$DATAROOT"/lamella_2_tilt_2/Images-Disc1/2019-04-24-142502.849\
+    lamella_2_mid "1016,1037" -100 0.002 0.37
+integrate "$DATAROOT"/lamella_2_tilt_3/Images-Disc1/2019-04-24-144238.540\
+    lamella_2_thick "1020,1090" -100 0.002 0.37
+
+# lamella3
+integrate "$DATAROOT"/lamella_3_tilt_1/Images-Disc1/2019-04-24-150408.105\
+    lamella_3_thin "1012,1084" -100 0.002 0.3
+integrate "$DATAROOT"/lamella_3_tilt_2/Images-Disc1/2019-04-24-153550.410\
+    lamella_3_mid "1012,1084" -100 0.002 0.3
+integrate "$DATAROOT"/lamella_3_tilt_3/Images-Disc1/2019-04-24-154246.731\
+    lamella_3_thick "1013,1080" -100 0.002 0.3
 
 dials_scale scale1 lamella_1_ 2.0
 dials_scale scale2 lamella_2_ 2.4
@@ -213,7 +257,7 @@ aimless_scale aimless1 lamella_1_ 2.0
 aimless_scale aimless2 lamella_2_ 2.4
 aimless_scale aimless3 lamella_3_ 2.1
 
-## Q-Q plots
+# Q-Q plots
 dials.python "$SCRIPTDIR"/qqplot.py lamella_1_thin/unscaled_merged.mtz\
     lamella_1_thick/unscaled_merged.mtz lamella1_unscaled
 dials.python "$SCRIPTDIR"/qqplot.py lamella_2_thin/unscaled_merged.mtz\
@@ -229,7 +273,11 @@ dials.python "$SCRIPTDIR"/qqplot.py aimless1/lamella_1_thin.mtz aimless1/lamella
 dials.python "$SCRIPTDIR"/qqplot.py aimless2/lamella_2_thin.mtz aimless2/lamella_2_thick.mtz lamella2_aimless
 dials.python "$SCRIPTDIR"/qqplot.py aimless3/lamella_3_thin.mtz aimless3/lamella_3_thick.mtz lamella3_aimless
 
-refine () {
-  # refine data against model to make Fo vs Fc plots
-  echo "TO DO"
-}
+# Refinement and Fo vs Fc plot creation
+refine scale1
+refine scale2
+refine scale3
+
+refine aimless1
+refine aimless2
+refine aimless3
