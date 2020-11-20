@@ -222,8 +222,8 @@ LABIN FP=F SIGFP=SIGF
 
 # Integrate with pedestal of -100. I tried various pedestal levels using
 # the lamella_3 datasets and found that this maximised the outer shell CC1/2.
-# The assignment of datasets for thin, mid and thick come from annotations on
-# the PowerPoint file
+# The assignment of datasets for thin, mid and thick come from assumption made
+# using the crystal images in supervisor_evb_nt23169-1/nt21004-140/saved_images
 
 # lamella1
 integrate "$DATAROOT"/lamella_1_tilt_1/Images-Disc1/2019-04-24-155637.255\
@@ -243,11 +243,11 @@ integrate "$DATAROOT"/lamella_2_tilt_3/Images-Disc1/2019-04-24-144238.540\
 
 # lamella3
 integrate "$DATAROOT"/lamella_3_tilt_1/Images-Disc1/2019-04-24-150408.105\
-    lamella_3_thin "1012,1084" -100 0.002 0.3
+    lamella_3_thick "1012,1084" -100 0.002 0.3
 integrate "$DATAROOT"/lamella_3_tilt_2/Images-Disc1/2019-04-24-153550.410\
     lamella_3_mid "1012,1084" -100 0.002 0.3
 integrate "$DATAROOT"/lamella_3_tilt_3/Images-Disc1/2019-04-24-154246.731\
-    lamella_3_thick "1013,1080" -100 0.002 0.3
+    lamella_3_thin "1013,1080" -100 0.002 0.3
 
 dials_scale scale1 lamella_1_ 2.0
 dials_scale scale2 lamella_2_ 2.4
@@ -257,22 +257,6 @@ aimless_scale aimless1 lamella_1_ 2.0
 aimless_scale aimless2 lamella_2_ 2.4
 aimless_scale aimless3 lamella_3_ 2.1
 
-# Q-Q plots
-dials.python "$SCRIPTDIR"/qqplot.py lamella_1_thin/unscaled_merged.mtz\
-    lamella_1_thick/unscaled_merged.mtz lamella1_unscaled
-dials.python "$SCRIPTDIR"/qqplot.py lamella_2_thin/unscaled_merged.mtz\
-    lamella_2_thick/unscaled_merged.mtz lamella2_unscaled
-dials.python "$SCRIPTDIR"/qqplot.py lamella_3_thin/unscaled_merged.mtz\
-    lamella_3_thick/unscaled_merged.mtz lamella3_unscaled
-
-dials.python "$SCRIPTDIR"/qqplot.py scale1/lamella_1_thin.mtz scale1/lamella_1_thick.mtz lamella1_dials
-dials.python "$SCRIPTDIR"/qqplot.py scale2/lamella_2_thin.mtz scale2/lamella_2_thick.mtz lamella2_dials
-dials.python "$SCRIPTDIR"/qqplot.py scale3/lamella_3_thin.mtz scale3/lamella_3_thick.mtz lamella3_dials
-
-dials.python "$SCRIPTDIR"/qqplot.py aimless1/lamella_1_thin.mtz aimless1/lamella_1_thick.mtz lamella1_aimless
-dials.python "$SCRIPTDIR"/qqplot.py aimless2/lamella_2_thin.mtz aimless2/lamella_2_thick.mtz lamella2_aimless
-dials.python "$SCRIPTDIR"/qqplot.py aimless3/lamella_3_thin.mtz aimless3/lamella_3_thick.mtz lamella3_aimless
-
 # Refinement and Fo vs Fc plot creation
 refine scale1
 refine scale2
@@ -281,3 +265,43 @@ refine scale3
 refine aimless1
 refine aimless2
 refine aimless3
+
+# Create Q-Q plots and move Fo vs Fc plots, create PNGs
+mkdir -p "$PROCDIR"/plots
+cd "$PROCDIR"/plots
+
+find "$PROCDIR"/*_refine/Fo_vs_Fc.pdf -exec mv {} "$PROCDIR"/plots/ \;
+
+dials.python "$SCRIPTDIR"/qqplot.py\
+    "$PROCDIR"/lamella_1_thin/unscaled_merged.mtz\
+    "$PROCDIR"/lamella_1_thick/unscaled_merged.mtz lamella1_unscaled
+dials.python "$SCRIPTDIR"/qqplot.py\
+    "$PROCDIR"/lamella_2_thin/unscaled_merged.mtz\
+    "$PROCDIR"/lamella_2_thick/unscaled_merged.mtz lamella2_unscaled
+dials.python "$SCRIPTDIR"/qqplot.py\
+    "$PROCDIR"/lamella_3_thin/unscaled_merged.mtz\
+    "$PROCDIR"/lamella_3_thick/unscaled_merged.mtz lamella3_unscaled
+
+dials.python "$SCRIPTDIR"/qqplot.py\
+    "$PROCDIR"/scale1/lamella_1_thin.mtz\
+    "$PROCDIR"/scale1/lamella_1_thick.mtz lamella1_dials
+dials.python "$SCRIPTDIR"/qqplot.py\
+    "$PROCDIR"/scale2/lamella_2_thin.mtz\
+    "$PROCDIR"/scale2/lamella_2_thick.mtz lamella2_dials
+dials.python "$SCRIPTDIR"/qqplot.py\
+    "$PROCDIR"/scale3/lamella_3_thin.mtz\
+    "$PROCDIR"/scale3/lamella_3_thick.mtz lamella3_dials
+
+dials.python "$SCRIPTDIR"/qqplot.py\
+    "$PROCDIR"/aimless1/lamella_1_thin.mtz\
+    "$PROCDIR"/aimless1/lamella_1_thick.mtz lamella1_aimless
+dials.python "$SCRIPTDIR"/qqplot.py\
+    "$PROCDIR"/aimless2/lamella_2_thin.mtz\
+    "$PROCDIR"/aimless2/lamella_2_thick.mtz lamella2_aimless
+dials.python "$SCRIPTDIR"/qqplot.py\
+    "$PROCDIR"/aimless3/lamella_3_thin.mtz\
+    "$PROCDIR"/aimless3/lamella_3_thick.mtz lamella3_aimless
+
+# TODO make pngs for GOogle Doc
+
+cd "$PROCDIR"
