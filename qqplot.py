@@ -1,5 +1,5 @@
 #! /usr/bin/env cctbx.python
-import sys
+import os, sys
 from iotbx import mtz
 import numpy as np
 import matplotlib.pyplot as plt
@@ -47,12 +47,12 @@ if __name__ == "__main__":
     print("I2: {:.2f} {:.2f} {:.2f} {:.2f} {:.2f}".format(*five_number_summary(y)))
     fig, ax = plt.subplots()
     ax.scatter(x, y)
-    plt.xlabel(sys.argv[1])
-    plt.ylabel(sys.argv[2])
+    plt.xlabel(os.path.basename(sys.argv[1]))
+    plt.ylabel(os.path.basename(sys.argv[2]))
 
-    # Look at weakest 90% of data, but remove first .1% which are probably
+    # Cut off strongest 5% of data, and also remove first .1% which are probably
     # outliers
-    maxI = np.max([x[int(len(x) * 0.90)], y[int(len(x) * 0.90)]])
+    maxI = np.max([x[int(len(x) * 0.95)], y[int(len(x) * 0.95)]])
     minI = np.min([x[int(len(x) / 1000)], y[int(len(x) / 1000)]])
     ax.set_ylim(minI, maxI)
     ax.set_xlim(minI, maxI)

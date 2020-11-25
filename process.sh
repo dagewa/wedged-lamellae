@@ -206,11 +206,12 @@ refine () {
         refmac5 xyzin "$SCRIPTDIR"/6zeu.cif xyzout refmac-"$name".pdb\
             hklin "$PROCDIR"/"$SCALEDIR"/"$name".mtz\
             hklout refmac-"$name".mtz > refmac-"$name".log <<+
-NCYC 10
+NCYC 30
 SOURCE ELECTRON MB
 LABIN FP=F SIGFP=SIGF
 +
-    dials.plot_Fo_vs_Fc hklin=refmac-"$name".mtz
+    dials.plot_Fo_vs_Fc hklin=refmac-"$name".mtz\
+        plot_filename=Fo_vs_Fc-"$SCALEDIR"-"$name".pdf
     done
 
     cd "$PROCDIR"
@@ -249,28 +250,29 @@ integrate "$DATAROOT"/lamella_3_tilt_2/Images-Disc1/2019-04-24-153550.410\
 integrate "$DATAROOT"/lamella_3_tilt_3/Images-Disc1/2019-04-24-154246.731\
     lamella_3_thin "1013,1080" -100 0.002 0.3
 
-dials_scale scale1 lamella_1_ 2.0
-dials_scale scale2 lamella_2_ 2.4
-dials_scale scale3 lamella_3_ 2.1
+dials_scale scale_1 lamella_1_ 2.0
+dials_scale scale_2 lamella_2_ 2.4
+dials_scale scale_3 lamella_3_ 2.1
 
-aimless_scale aimless1 lamella_1_ 2.0
-aimless_scale aimless2 lamella_2_ 2.4
-aimless_scale aimless3 lamella_3_ 2.1
+aimless_scale aimless_1 lamella_1_ 2.0
+aimless_scale aimless_2 lamella_2_ 2.4
+aimless_scale aimless_3 lamella_3_ 2.1
 
 # Refinement and Fo vs Fc plot creation
-refine scale1
-refine scale2
-refine scale3
+refine scale_1
+refine scale_2
+refine scale_3
 
-refine aimless1
-refine aimless2
-refine aimless3
+refine aimless_1
+refine aimless_2
+refine aimless_3
 
 # Create Q-Q plots and move Fo vs Fc plots, create PNGs
 mkdir -p "$PROCDIR"/plots
 cd "$PROCDIR"/plots
 
-find "$PROCDIR"/*_refine/Fo_vs_Fc.pdf -exec mv {} "$PROCDIR"/plots/ \;
+
+find "$PROCDIR" -name "Fo_vs_Fc-*.pdf" -exec mv {} "$PROCDIR"/plots/ \;
 
 dials.python "$SCRIPTDIR"/qqplot.py\
     "$PROCDIR"/lamella_1_thin/unscaled_merged.mtz\
@@ -283,25 +285,50 @@ dials.python "$SCRIPTDIR"/qqplot.py\
     "$PROCDIR"/lamella_3_thick/unscaled_merged.mtz lamella3_unscaled
 
 dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/scale1/lamella_1_thin.mtz\
-    "$PROCDIR"/scale1/lamella_1_thick.mtz lamella1_dials
+    "$PROCDIR"/scale_1/lamella_1_thin.mtz\
+    "$PROCDIR"/scale_1/lamella_1_thick.mtz lamella1_dials
 dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/scale2/lamella_2_thin.mtz\
-    "$PROCDIR"/scale2/lamella_2_thick.mtz lamella2_dials
+    "$PROCDIR"/scale_2/lamella_2_thin.mtz\
+    "$PROCDIR"/scale_2/lamella_2_thick.mtz lamella2_dials
 dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/scale3/lamella_3_thin.mtz\
-    "$PROCDIR"/scale3/lamella_3_thick.mtz lamella3_dials
+    "$PROCDIR"/scale_3/lamella_3_thin.mtz\
+    "$PROCDIR"/scale_3/lamella_3_thick.mtz lamella3_dials
 
 dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/aimless1/lamella_1_thin.mtz\
-    "$PROCDIR"/aimless1/lamella_1_thick.mtz lamella1_aimless
+    "$PROCDIR"/aimless_1/lamella_1_thin.mtz\
+    "$PROCDIR"/aimless_1/lamella_1_thick.mtz lamella1_aimless
 dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/aimless2/lamella_2_thin.mtz\
-    "$PROCDIR"/aimless2/lamella_2_thick.mtz lamella2_aimless
+    "$PROCDIR"/aimless_2/lamella_2_thin.mtz\
+    "$PROCDIR"/aimless_2/lamella_2_thick.mtz lamella2_aimless
 dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/aimless3/lamella_3_thin.mtz\
-    "$PROCDIR"/aimless3/lamella_3_thick.mtz lamella3_aimless
+    "$PROCDIR"/aimless_3/lamella_3_thin.mtz\
+    "$PROCDIR"/aimless_3/lamella_3_thick.mtz lamella3_aimless
 
-# TODO make pngs for GOogle Doc
+cp "$DATAROOT"/lamella_1_tilt_1/lamella_1_tilt_1.png lamella_1_thick.png
+cp "$DATAROOT"/lamella_1_tilt_2/lamella_1_tilt_2.png lamella_1_mid.png
+cp "$DATAROOT"/lamella_1_tilt_3/lamella_1_tilt_3.png lamella_1_thin.png
+
+cp "$DATAROOT"/lamella_2_tilt_1/lamella_2_tilt_1.png lamella_2_thin.png
+cp "$DATAROOT"/lamella_2_tilt_2/lamella_2_tilt_2.png lamella_2_mid.png
+cp "$DATAROOT"/lamella_2_tilt_3/lamella_2_tilt_3.png lamella_2_thick.png
+
+cp "$DATAROOT"/lamella_3_tilt_1/lamella_3_tilt_1.png lamella_3_thick.png
+cp "$DATAROOT"/lamella_3_tilt_2/lamella_3_tilt_2.png lamella_3_mid.png
+cp "$DATAROOT"/lamella_3_tilt_3/lamella_3_tilt_3.png lamella_3_thin.png
+
+for i in 1 2 3
+do
+    convert lamella_"$i"_thick.png lamella_"$i"_mid.png lamella_"$i"_thin.png\
+        +append lamella_"$i"_positions.png
+
+    convert lamella"$i"_dials.pdf lamella"$i"_aimless.pdf lamella"$i"_unscaled.pdf\
+        +append lamella"$i"_QQ.png
+
+    for prog in "scale" "aimless"
+    do
+    convert Fo_vs_Fc-"$prog"_"$i"-thick.pdf Fo_vs_Fc-"$prog"_"$i"-mid.pdf Fo_vs_Fc-"$prog"_"$i"-thin.pdf\
+        +append Fo_vs_Fc-"$prog"_"$i".png
+    done
+done
 
 cd "$PROCDIR"
