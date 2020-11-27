@@ -227,8 +227,21 @@ make_plots() {
     mkdir -p "$PROCDIR"/plots
     cd "$PROCDIR"/plots
 
-    # Move previously-created Fo vs Fc plots here
-    find "$PROCDIR" -name "Fo_vs_Fc-*.pdf" -exec mv {} "$PROCDIR"/plots/ \;
+    # Link previously-created Fo vs Fc plots here
+    find "$PROCDIR" -name "Fo_vs_Fc-*.pdf" -exec ln -s {} "$PROCDIR"/plots/ \;
+
+    # Link to crystal images with the correct descriptive name for clarity
+    ln -s "$DATAROOT"/lamella_1_tilt_1/lamella_1_tilt_1.png lamella_1_thick.png
+    ln -s "$DATAROOT"/lamella_1_tilt_2/lamella_1_tilt_2.png lamella_1_mid.png
+    ln -s "$DATAROOT"/lamella_1_tilt_3/lamella_1_tilt_3.png lamella_1_thin.png
+
+    ln -s "$DATAROOT"/lamella_2_tilt_1/lamella_2_tilt_1.png lamella_2_thin.png
+    ln -s "$DATAROOT"/lamella_2_tilt_2/lamella_2_tilt_2.png lamella_2_mid.png
+    ln -s "$DATAROOT"/lamella_2_tilt_3/lamella_2_tilt_3.png lamella_2_thick.png
+
+    ln -s "$DATAROOT"/lamella_3_tilt_1/lamella_3_tilt_1.png lamella_3_thick.png
+    ln -s "$DATAROOT"/lamella_3_tilt_2/lamella_3_tilt_2.png lamella_3_mid.png
+    ln -s "$DATAROOT"/lamella_3_tilt_3/lamella_3_tilt_3.png lamella_3_thin.png
 
     # Do various tasks for each lamella
     for i in 1 2 3
@@ -254,27 +267,28 @@ make_plots() {
             "$PROCDIR"/aimless_"$i"/lamella_"$i"_thin.mtz\
             "$PROCDIR"/aimless_"$i"/lamella_"$i"_thick.mtz lamella"$i"_aimless
 
-    # Link to crystal images with descriptive name for clarity
-        ln -s "$DATAROOT"/lamella_"$i"_tilt_1/lamella_"$i"_tilt_1.png lamella_"$i"_thick.png
-        ln -s "$DATAROOT"/lamella_"$i"_tilt_2/lamella_"$i"_tilt_2.png lamella_"$i"_mid.png
-        ln -s "$DATAROOT"/lamella_"$i"_tilt_3/lamella_"$i"_tilt_3.png lamella_"$i"_thin.png
-
     # Create composite PNG images for a report
         convert lamella_"$i"_thick.png lamella_"$i"_mid.png lamella_"$i"_thin.png\
             +append lamella_"$i"_positions.png
 
-        convert lamella"$i"_dials.pdf lamella"$i"_aimless.pdf lamella"$i"_unscaled.pdf\
-            +append lamella"$i"_QQ.png
+        convert -density 300 lamella"$i"_dials.pdf -trim +repage dials.png
+        convert -density 300 lamella"$i"_aimless.pdf -trim +repage aimless.png
+        convert -density 300 lamella"$i"_unscaled.pdf -trim +repage unscaled.png
+        convert dials.png aimless.png unscaled.png +append lamella"$i"_QQ.png
+        rm dials.png aimless.png unscaled.png
 
         for prog in "scale" "aimless"
         do
-        convert Fo_vs_Fc-"$prog"_"$i"-thick.pdf Fo_vs_Fc-"$prog"_"$i"-mid.pdf Fo_vs_Fc-"$prog"_"$i"-thin.pdf\
-            +append Fo_vs_Fc-"$prog"_"$i".png
+            convert -density 300 Fo_vs_Fc-"$prog"_"$i"-thick.pdf -trim +repage thick.png
+            convert -density 300 Fo_vs_Fc-"$prog"_"$i"-mid.pdf -trim +repage mid.png
+            convert -density 300 Fo_vs_Fc-"$prog"_"$i"-thin.pdf -trim +repage thin.png
+            convert thick.png mid.png thin.png +append Fo_vs_Fc-"$prog"_"$i".png
+            rm thick.png mid.png thin.png
         done
-
-    # Remove links
-        rm lamella_"$i"_*.png
     done
+
+    # Remove links we no longer need here
+    rm lamella_{1,2,3}_{thick,mid,thin}.png
 
     cd "$PROCDIR"
 
