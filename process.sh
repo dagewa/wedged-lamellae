@@ -25,8 +25,12 @@ untrusted {
 }
 +
 
-# Integrate a single dataset
+########################
+# FUNCTION DEFINITIONS #
+########################
+
 integrate () {
+    # Integrate a single dataset
     DATADIR=$1
     NAME=$2
     BEAM_CENTRE=$3
@@ -191,9 +195,9 @@ onlymerge
     cd $PROCDIR
 }
 
-# Refine the model 6zeu.cif against thick, mid and thin datasets for one lamella
-# then produce Fo vs Fc plots.
 refine () {
+    # Refine the model 6zeu.cif against thick, mid and thin datasets for one
+    # lamella then produce Fo vs Fc plots.
     SCALEDIR=$1
 
     echo "Refining datasets in $SCALEDIR"
@@ -217,9 +221,68 @@ LABIN FP=F SIGFP=SIGF
     cd "$PROCDIR"
 }
 
-###################
-# DATA PROCESSING #
-###################
+make_plots() {
+
+    echo "Creating plots"
+    mkdir -p "$PROCDIR"/plots
+    cd "$PROCDIR"/plots
+
+    # Move previously-created Fo vs Fc plots here
+    find "$PROCDIR" -name "Fo_vs_Fc-*.pdf" -exec mv {} "$PROCDIR"/plots/ \;
+
+    # Do various tasks for each lamella
+    for i in 1 2 3
+    do
+    # Q-Q plots
+        # Unscaled - use links to give descriptive filename for the plot
+        ln -s "$PROCDIR"/lamella_"$i"_thin/unscaled_merged.mtz\
+            lamella"$i"_unscaled_thin.mtz
+        ln -s "$PROCDIR"/lamella_"$i"_thick/unscaled_merged.mtz\
+            lamella"$i"_unscaled_thick.mtz
+        dials.python "$SCRIPTDIR"/qqplot.py\
+            lamella"$i"_unscaled_thin.mtz lamella"$i"_unscaled_thick.mtz\
+            lamella"$i"_unscaled
+        rm lamella"$i"_unscaled_thin.mtz lamella"$i"_unscaled_thick.mtz
+
+        # Scaled with dials.scale
+        dials.python "$SCRIPTDIR"/qqplot.py\
+            "$PROCDIR"/scale_"$i"/lamella_"$i"_thin.mtz\
+            "$PROCDIR"/scale_"$i"/lamella_"$i"_thick.mtz lamella"$i"_dials
+
+        # Scaled with Aimless
+        dials.python "$SCRIPTDIR"/qqplot.py\
+            "$PROCDIR"/aimless_"$i"/lamella_"$i"_thin.mtz\
+            "$PROCDIR"/aimless_"$i"/lamella_"$i"_thick.mtz lamella"$i"_aimless
+
+    # Link to crystal images with descriptive name for clarity
+        ln -s "$DATAROOT"/lamella_"$i"_tilt_1/lamella_"$i"_tilt_1.png lamella_"$i"_thick.png
+        ln -s "$DATAROOT"/lamella_"$i"_tilt_2/lamella_"$i"_tilt_2.png lamella_"$i"_mid.png
+        ln -s "$DATAROOT"/lamella_"$i"_tilt_3/lamella_"$i"_tilt_3.png lamella_"$i"_thin.png
+
+    # Create composite PNG images for a report
+        convert lamella_"$i"_thick.png lamella_"$i"_mid.png lamella_"$i"_thin.png\
+            +append lamella_"$i"_positions.png
+
+        convert lamella"$i"_dials.pdf lamella"$i"_aimless.pdf lamella"$i"_unscaled.pdf\
+            +append lamella"$i"_QQ.png
+
+        for prog in "scale" "aimless"
+        do
+        convert Fo_vs_Fc-"$prog"_"$i"-thick.pdf Fo_vs_Fc-"$prog"_"$i"-mid.pdf Fo_vs_Fc-"$prog"_"$i"-thin.pdf\
+            +append Fo_vs_Fc-"$prog"_"$i".png
+        done
+
+    # Remove links
+        rm lamella_"$i"_*.png
+    done
+
+    cd "$PROCDIR"
+
+}
+
+########
+# MAIN #
+########
 
 # Integrate with pedestal of -100. I tried various pedestal levels using
 # the lamella_3 datasets and found that this maximised the outer shell CC1/2.
@@ -258,7 +321,7 @@ aimless_scale aimless_1 lamella_1_ 2.0
 aimless_scale aimless_2 lamella_2_ 2.4
 aimless_scale aimless_3 lamella_3_ 2.1
 
-# Refinement and Fo vs Fc plot creation
+# Refinement
 refine scale_1
 refine scale_2
 refine scale_3
@@ -267,68 +330,5 @@ refine aimless_1
 refine aimless_2
 refine aimless_3
 
-# Create Q-Q plots and move Fo vs Fc plots, create PNGs
-mkdir -p "$PROCDIR"/plots
-cd "$PROCDIR"/plots
-
-
-find "$PROCDIR" -name "Fo_vs_Fc-*.pdf" -exec mv {} "$PROCDIR"/plots/ \;
-
-dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/lamella_1_thin/unscaled_merged.mtz\
-    "$PROCDIR"/lamella_1_thick/unscaled_merged.mtz lamella1_unscaled
-dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/lamella_2_thin/unscaled_merged.mtz\
-    "$PROCDIR"/lamella_2_thick/unscaled_merged.mtz lamella2_unscaled
-dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/lamella_3_thin/unscaled_merged.mtz\
-    "$PROCDIR"/lamella_3_thick/unscaled_merged.mtz lamella3_unscaled
-
-dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/scale_1/lamella_1_thin.mtz\
-    "$PROCDIR"/scale_1/lamella_1_thick.mtz lamella1_dials
-dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/scale_2/lamella_2_thin.mtz\
-    "$PROCDIR"/scale_2/lamella_2_thick.mtz lamella2_dials
-dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/scale_3/lamella_3_thin.mtz\
-    "$PROCDIR"/scale_3/lamella_3_thick.mtz lamella3_dials
-
-dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/aimless_1/lamella_1_thin.mtz\
-    "$PROCDIR"/aimless_1/lamella_1_thick.mtz lamella1_aimless
-dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/aimless_2/lamella_2_thin.mtz\
-    "$PROCDIR"/aimless_2/lamella_2_thick.mtz lamella2_aimless
-dials.python "$SCRIPTDIR"/qqplot.py\
-    "$PROCDIR"/aimless_3/lamella_3_thin.mtz\
-    "$PROCDIR"/aimless_3/lamella_3_thick.mtz lamella3_aimless
-
-cp "$DATAROOT"/lamella_1_tilt_1/lamella_1_tilt_1.png lamella_1_thick.png
-cp "$DATAROOT"/lamella_1_tilt_2/lamella_1_tilt_2.png lamella_1_mid.png
-cp "$DATAROOT"/lamella_1_tilt_3/lamella_1_tilt_3.png lamella_1_thin.png
-
-cp "$DATAROOT"/lamella_2_tilt_1/lamella_2_tilt_1.png lamella_2_thin.png
-cp "$DATAROOT"/lamella_2_tilt_2/lamella_2_tilt_2.png lamella_2_mid.png
-cp "$DATAROOT"/lamella_2_tilt_3/lamella_2_tilt_3.png lamella_2_thick.png
-
-cp "$DATAROOT"/lamella_3_tilt_1/lamella_3_tilt_1.png lamella_3_thick.png
-cp "$DATAROOT"/lamella_3_tilt_2/lamella_3_tilt_2.png lamella_3_mid.png
-cp "$DATAROOT"/lamella_3_tilt_3/lamella_3_tilt_3.png lamella_3_thin.png
-
-for i in 1 2 3
-do
-    convert lamella_"$i"_thick.png lamella_"$i"_mid.png lamella_"$i"_thin.png\
-        +append lamella_"$i"_positions.png
-
-    convert lamella"$i"_dials.pdf lamella"$i"_aimless.pdf lamella"$i"_unscaled.pdf\
-        +append lamella"$i"_QQ.png
-
-    for prog in "scale" "aimless"
-    do
-    convert Fo_vs_Fc-"$prog"_"$i"-thick.pdf Fo_vs_Fc-"$prog"_"$i"-mid.pdf Fo_vs_Fc-"$prog"_"$i"-thin.pdf\
-        +append Fo_vs_Fc-"$prog"_"$i".png
-    done
-done
-
-cd "$PROCDIR"
+# Plot creation
+make_plots
