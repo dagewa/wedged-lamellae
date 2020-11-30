@@ -164,14 +164,14 @@ output unmerged
 
     # Just merge the reflections from the thick part of the crystal
     aimless\
-        hklin scaled_unmerged.mtz hklout "${PREFIX}"thick.mtz > /dev/null <<+
+        hklin scaled_unmerged.mtz hklout "${PREFIX}"thick.mtz > merge_thick.log <<+
 exclude batches 75 to 3000
 onlymerge
 +
 
     # Just merge the reflections from the mid part of the crystal
     aimless\
-        hklin scaled_unmerged.mtz hklout "${PREFIX}"mid.mtz > /dev/null <<+
+        hklin scaled_unmerged.mtz hklout "${PREFIX}"mid.mtz > merge_mid.log <<+
 exclude batches 1 to 100
 exclude batches 2000 to 3000
 onlymerge
@@ -179,7 +179,7 @@ onlymerge
 
     # Just merge the reflections from the thin part of the crystal
     aimless\
-        hklin scaled_unmerged.mtz hklout "${PREFIX}"thin.mtz > /dev/null <<+
+        hklin scaled_unmerged.mtz hklout "${PREFIX}"thin.mtz > merge_thin.log <<+
 exclude batches 1 to 1100
 onlymerge
 +
@@ -215,7 +215,7 @@ SOURCE ELECTRON MB
 LABIN FP=F SIGFP=SIGF
 +
     dials.plot_Fo_vs_Fc hklin=refmac-"$name".mtz\
-        plot_filename=Fo_vs_Fc-"$SCALEDIR"-"$name".pdf
+        plot_filename=Fo_vs_Fc-"$SCALEDIR"-"$name".pdf > Fo_vs_Fc-"$SCALEDIR"-"$name".log
     done
 
     cd "$PROCDIR"
