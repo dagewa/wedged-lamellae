@@ -134,7 +134,7 @@ aimless_scale () {
 batch add 1000
 +
 
-    rebatch hklin "$PROCDIR/${PREFIX}mid"/integrated.mtz \
+    rebatch hklin "$PROCDIR/${PREFIX}thin"/integrated.mtz \
         hklout thin.mtz >/dev/null <<+
 batch add 2000
 +
