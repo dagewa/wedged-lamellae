@@ -69,7 +69,7 @@ integrate () {
        sigma_b="$SIGMA_B" sigma_m="$SIGMA_M" > /dev/null
 
     # Export MTZ (for pointless / aimless scaling)
-    dials.export integrated.expt integrated.refl
+    dials.export integrated.expt integrated.refl > /dev/null
 
     # Export unscaled but merged MTZ (for qq-plot)
     aimless \
@@ -294,9 +294,87 @@ make_plots() {
 
 }
 
+pedestal_test() {
+    ORIG_PROCDIR=$PROCDIR
+    mkdir -p $PROCDIR/pedestal
+    cd $PROCDIR/pedestal
+    PROCDIR=$(pwd)
+
+    cat > mask.phil <<+
+untrusted {
+  polygon = 2 958 3 1094 932 1088 998 1121 1051 1133 1135 1128 1185 1115 1226 \
+            1087 1438 1021 1438 1002 1225 942 1186 917 1144 903 1075 898 1005 \
+            905 962 926 945 935 929 939 923 947 4 959 2 958
+}
++
+
+    for PEDESTAL in -50 -60 -70 -80 -90 -100 -110 -120 -130 -140 -150
+    do
+        # lamella1
+        integrate "$DATAROOT"/lamella_1_tilt_1/Images-Disc1/2019-04-24-155637.255\
+            lamella_1_thick_"$PEDESTAL" "1017,1080" "$PEDESTAL" 0.0025 0.2
+        integrate "$DATAROOT"/lamella_1_tilt_2/Images-Disc1/2019-04-24-160547.199\
+            lamella_1_mid_"$PEDESTAL" "1014,1082" "$PEDESTAL" 0.0025 0.2
+        integrate "$DATAROOT"/lamella_1_tilt_3/Images-Disc1/2019-04-24-161139.085\
+            lamella_1_thin_"$PEDESTAL" "1012,1080" "$PEDESTAL" 0.0025 0.2
+        mkdir -p scale_1_"$PEDESTAL" && cd scale_1_"$PEDESTAL"
+        dials.scale\
+            "$PROCDIR"/lamella_1_thick_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_1_thick_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_1_mid_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_1_mid_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_1_thin_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_1_thin_"$PEDESTAL"/integrated.refl\
+            exclude_images=0:75:81 exclude_images=1:75:81 exclude_images=2:75:81\
+            d_max=10 d_min=2.0 error_model=None json=scale.json > /dev/null
+        cd "$PROCDIR"
+
+        # lamella2
+        integrate "$DATAROOT"/lamella_2_tilt_1/Images-Disc1/2019-04-24-141357.568\
+            lamella_2_thin_"$PEDESTAL" "1013,1033" "$PEDESTAL" 0.002 0.37
+        integrate "$DATAROOT"/lamella_2_tilt_2/Images-Disc1/2019-04-24-142502.849\
+            lamella_2_mid_"$PEDESTAL" "1016,1037" "$PEDESTAL" 0.002 0.37
+        integrate "$DATAROOT"/lamella_2_tilt_3/Images-Disc1/2019-04-24-144238.540\
+            lamella_2_thick_"$PEDESTAL" "1020,1090" "$PEDESTAL" 0.002 0.37
+        mkdir -p scale_2_"$PEDESTAL" && cd scale_2_"$PEDESTAL"
+        dials.scale\
+            "$PROCDIR"/lamella_2_thick_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_2_thick_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_2_mid_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_2_mid_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_2_thin_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_2_thin_"$PEDESTAL"/integrated.refl\
+            exclude_images=0:75:81 exclude_images=1:75:81 exclude_images=2:75:81\
+            d_max=10 d_min=2.4 error_model=None json=scale.json > /dev/null
+        cd "$PROCDIR"
+
+        # lamella3
+        integrate "$DATAROOT"/lamella_3_tilt_1/Images-Disc1/2019-04-24-150408.105\
+            lamella_3_thick_"$PEDESTAL" "1012,1084" "$PEDESTAL" 0.002 0.3
+        integrate "$DATAROOT"/lamella_3_tilt_2/Images-Disc1/2019-04-24-153550.410\
+            lamella_3_mid_"$PEDESTAL" "1012,1084" "$PEDESTAL" 0.002 0.3
+        integrate "$DATAROOT"/lamella_3_tilt_3/Images-Disc1/2019-04-24-154246.731\
+            lamella_3_thin_"$PEDESTAL" "1013,1080" "$PEDESTAL" 0.002 0.3
+        mkdir -p scale_3_"$PEDESTAL" && cd scale_3_"$PEDESTAL"
+        dials.scale\
+            "$PROCDIR"/lamella_3_thick_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_3_thick_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_3_mid_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_3_mid_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_3_thin_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_3_thin_"$PEDESTAL"/integrated.refl\
+            exclude_images=0:75:81 exclude_images=1:75:81 exclude_images=2:75:81\
+            d_max=10 d_min=2.1 error_model=None json=scale.json > /dev/null
+        cd "$PROCDIR"
+    done
+
+    # Generate plots
+    for i in 1 2 3
+    do
+
+        dials.python "$SCRIPTDIR"/cchalf_pedestal.py lamella_"$i" scale_"$i"_*
+    done
+
+    PROCDIR=$ORIG_PROCDIR
+}
+
 ########
 # MAIN #
 ########
+
+# Uncomment below to investigate different pedestal levels
+#pedestal_test
 
 # Integrate with pedestal of -100. I tried various pedestal levels using
 # the lamella_3 datasets and found that this maximised the outer shell CC1/2.
