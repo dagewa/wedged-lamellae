@@ -37,6 +37,7 @@ integrate () {
     PEDESTAL=$4
     SIGMA_B=$5
     SIGMA_M=$6
+    STRONG=$7
 
     echo "Integrating" "$NAME"
     mkdir -p "$PROCDIR"/"$NAME"
@@ -58,7 +59,11 @@ integrate () {
       slow_fast_beam_centre="$BEAM_CENTRE"\
       panel.pedestal="$PEDESTAL"\
       mask=pixels.mask > /dev/null
-    dials.find_spots imported.expt d_min=1.95 nproc=4 > /dev/null
+    if [ -z $STRONG ]; then
+        dials.find_spots imported.expt d_min=1.95 nproc=4 > /dev/null
+    else
+        cp $STRONG .
+    fi
     dials.index imported.expt strong.refl detector.fix=distance\
       space_group=P43212 unit_cell=68,68,109,90,90,90\
       indexing.method=real_space_grid_search > /dev/null
@@ -308,15 +313,21 @@ untrusted {
 }
 +
 
-    for PEDESTAL in -50 -60 -70 -80 -90 -100 -110 -120 -130 -140 -150
+    # Integrate pedestal -100 first to get spot-finding results to use at other
+    # pedestal levels by passing in STRONG
+    for PEDESTAL in -100 -10 -20 -30 -40 -50 -60 -70 -80 -90 -100 -110 -120\
+        -130 -140 -150 -160 -170 -180 -190 -200 -210 -220 -230
     do
         # lamella1
         integrate "$DATAROOT"/lamella_1_tilt_1/Images-Disc1/2019-04-24-155637.255\
-            lamella_1_thick_"$PEDESTAL" "1017,1080" "$PEDESTAL" 0.0025 0.2
+            lamella_1_thick_"$PEDESTAL" "1017,1080" "$PEDESTAL" 0.0025 0.2\
+            $(find . -path ./lamella_1_thick_-100/strong.refl)
         integrate "$DATAROOT"/lamella_1_tilt_2/Images-Disc1/2019-04-24-160547.199\
-            lamella_1_mid_"$PEDESTAL" "1014,1082" "$PEDESTAL" 0.0025 0.2
+            lamella_1_mid_"$PEDESTAL" "1014,1082" "$PEDESTAL" 0.0025 0.2\
+            $(find . -path ./lamella_1_mid_-100/strong.refl)
         integrate "$DATAROOT"/lamella_1_tilt_3/Images-Disc1/2019-04-24-161139.085\
-            lamella_1_thin_"$PEDESTAL" "1012,1080" "$PEDESTAL" 0.0025 0.2
+            lamella_1_thin_"$PEDESTAL" "1012,1080" "$PEDESTAL" 0.0025 0.2\
+            $(find . -path ./lamella_1_thin_-100/strong.refl)
         mkdir -p scale_1_"$PEDESTAL" && cd scale_1_"$PEDESTAL"
         dials.scale\
             "$PROCDIR"/lamella_1_thick_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_1_thick_"$PEDESTAL"/integrated.refl\
@@ -328,11 +339,14 @@ untrusted {
 
         # lamella2
         integrate "$DATAROOT"/lamella_2_tilt_1/Images-Disc1/2019-04-24-141357.568\
-            lamella_2_thin_"$PEDESTAL" "1013,1033" "$PEDESTAL" 0.002 0.37
+            lamella_2_thin_"$PEDESTAL" "1013,1033" "$PEDESTAL" 0.002 0.37\
+            $(find . -path ./lamella_2_thin_-100/strong.refl)
         integrate "$DATAROOT"/lamella_2_tilt_2/Images-Disc1/2019-04-24-142502.849\
-            lamella_2_mid_"$PEDESTAL" "1016,1037" "$PEDESTAL" 0.002 0.37
+            lamella_2_mid_"$PEDESTAL" "1016,1037" "$PEDESTAL" 0.002 0.37\
+            $(find . -path ./lamella_2_mid_-100/strong.refl)
         integrate "$DATAROOT"/lamella_2_tilt_3/Images-Disc1/2019-04-24-144238.540\
-            lamella_2_thick_"$PEDESTAL" "1020,1090" "$PEDESTAL" 0.002 0.37
+            lamella_2_thick_"$PEDESTAL" "1020,1090" "$PEDESTAL" 0.002 0.37\
+            $(find . -path ./lamella_2_thick_-100/strong.refl)
         mkdir -p scale_2_"$PEDESTAL" && cd scale_2_"$PEDESTAL"
         dials.scale\
             "$PROCDIR"/lamella_2_thick_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_2_thick_"$PEDESTAL"/integrated.refl\
@@ -344,11 +358,14 @@ untrusted {
 
         # lamella3
         integrate "$DATAROOT"/lamella_3_tilt_1/Images-Disc1/2019-04-24-150408.105\
-            lamella_3_thick_"$PEDESTAL" "1012,1084" "$PEDESTAL" 0.002 0.3
+            lamella_3_thick_"$PEDESTAL" "1012,1084" "$PEDESTAL" 0.002 0.3\
+            $(find . -path ./lamella_3_thick_-100/strong.refl)
         integrate "$DATAROOT"/lamella_3_tilt_2/Images-Disc1/2019-04-24-153550.410\
-            lamella_3_mid_"$PEDESTAL" "1012,1084" "$PEDESTAL" 0.002 0.3
+            lamella_3_mid_"$PEDESTAL" "1012,1084" "$PEDESTAL" 0.002 0.3\
+            $(find . -path ./lamella_3_mid_-100/strong.refl)
         integrate "$DATAROOT"/lamella_3_tilt_3/Images-Disc1/2019-04-24-154246.731\
-            lamella_3_thin_"$PEDESTAL" "1013,1080" "$PEDESTAL" 0.002 0.3
+            lamella_3_thin_"$PEDESTAL" "1013,1080" "$PEDESTAL" 0.002 0.3\
+            $(find . -path ./lamella_3_thin_-100/strong.refl)
         mkdir -p scale_3_"$PEDESTAL" && cd scale_3_"$PEDESTAL"
         dials.scale\
             "$PROCDIR"/lamella_3_thick_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_3_thick_"$PEDESTAL"/integrated.refl\
