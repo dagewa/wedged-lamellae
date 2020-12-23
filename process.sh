@@ -151,30 +151,30 @@ make_plots() {
     mkdir -p "$PROCDIR"/plots
     cd "$PROCDIR"/plots
 
-    # Link previously-created Fo vs Fc plots here
-    find "$PROCDIR" -name "Fo_vs_Fc-*.pdf" -exec ln -s {} "$PROCDIR"/plots/ \;
+    # Copy previously-created Fo vs Fc plots here
+    find "$PROCDIR" -path "*_refine/Fo_vs_Fc-*.pdf" -exec cp {} . \;
 
     # Link to crystal images with the correct descriptive name for clarity
-    ln -s "$DATAROOT"/lamella_1_tilt_1/lamella_1_tilt_1.png lamella_1_thick.png
-    ln -s "$DATAROOT"/lamella_1_tilt_2/lamella_1_tilt_2.png lamella_1_mid.png
-    ln -s "$DATAROOT"/lamella_1_tilt_3/lamella_1_tilt_3.png lamella_1_thin.png
+    ln -sf "$DATAROOT"/lamella_1_tilt_1/lamella_1_tilt_1.png lamella_1_thick.png
+    ln -sf "$DATAROOT"/lamella_1_tilt_2/lamella_1_tilt_2.png lamella_1_mid.png
+    ln -sf "$DATAROOT"/lamella_1_tilt_3/lamella_1_tilt_3.png lamella_1_thin.png
 
-    ln -s "$DATAROOT"/lamella_2_tilt_1/lamella_2_tilt_1.png lamella_2_thin.png
-    ln -s "$DATAROOT"/lamella_2_tilt_2/lamella_2_tilt_2.png lamella_2_mid.png
-    ln -s "$DATAROOT"/lamella_2_tilt_3/lamella_2_tilt_3.png lamella_2_thick.png
+    ln -sf "$DATAROOT"/lamella_2_tilt_1/lamella_2_tilt_1.png lamella_2_thin.png
+    ln -sf "$DATAROOT"/lamella_2_tilt_2/lamella_2_tilt_2.png lamella_2_mid.png
+    ln -sf "$DATAROOT"/lamella_2_tilt_3/lamella_2_tilt_3.png lamella_2_thick.png
 
-    ln -s "$DATAROOT"/lamella_3_tilt_1/lamella_3_tilt_1.png lamella_3_thick.png
-    ln -s "$DATAROOT"/lamella_3_tilt_2/lamella_3_tilt_2.png lamella_3_mid.png
-    ln -s "$DATAROOT"/lamella_3_tilt_3/lamella_3_tilt_3.png lamella_3_thin.png
+    ln -sf "$DATAROOT"/lamella_3_tilt_1/lamella_3_tilt_1.png lamella_3_thick.png
+    ln -sf "$DATAROOT"/lamella_3_tilt_2/lamella_3_tilt_2.png lamella_3_mid.png
+    ln -sf "$DATAROOT"/lamella_3_tilt_3/lamella_3_tilt_3.png lamella_3_thin.png
 
     # Do various tasks for each lamella
     for i in 1 2 3
     do
     # Q-Q plots
         # Unscaled - use links to give descriptive filename for the plot
-        ln -s "$PROCDIR"/lamella_"$i"_thin/unscaled_merged.mtz\
+        ln -sf "$PROCDIR"/lamella_"$i"_thin/unscaled_merged.mtz\
             lamella"$i"_unscaled_thin.mtz
-        ln -s "$PROCDIR"/lamella_"$i"_thick/unscaled_merged.mtz\
+        ln -sf "$PROCDIR"/lamella_"$i"_thick/unscaled_merged.mtz\
             lamella"$i"_unscaled_thick.mtz
         dials.python "$SCRIPTDIR"/qqplot.py\
             lamella"$i"_unscaled_thin.mtz lamella"$i"_unscaled_thick.mtz\
