@@ -73,10 +73,8 @@ integrate () {
        prediction.d_min=1.95 nproc=4\
        sigma_b="$SIGMA_B" sigma_m="$SIGMA_M" > /dev/null
 
-    # Export MTZ (for pointless / aimless scaling)
-    dials.export integrated.expt integrated.refl > /dev/null
-
     # Export unscaled but merged MTZ (for qq-plot)
+    dials.export integrated.expt integrated.refl > /dev/null
     aimless \
         hklin integrated.mtz hklout unscaled_merged.mtz > onlymerge.log <<+
 onlymerge
@@ -118,86 +116,6 @@ dials_scale () {
 
     cd $PROCDIR
 
-}
-
-aimless_scale () {
-    # Scale datasets for one lamella together, then also merge just the
-    # individual thicknesses
-    DIR=$1
-    PREFIX=$2
-    HIRES=$3
-
-    echo "Scaling for $PREFIX with Aimless"
-    cd $PROCDIR
-    mkdir -p $DIR
-    cd $DIR
-
-    # Pointless makes a mess of combining the files for lamella_2. Use rebatch
-    # first to ensure we get 3 runs
-    rebatch hklin "$PROCDIR/${PREFIX}mid"/integrated.mtz \
-        hklout mid.mtz >/dev/null <<+
-batch add 1000
-+
-
-    rebatch hklin "$PROCDIR/${PREFIX}thin"/integrated.mtz \
-        hklout thin.mtz >/dev/null <<+
-batch add 2000
-+
-
-    pointless\
-        hklin "$PROCDIR/${PREFIX}thick"/integrated.mtz\
-        hklin mid.mtz\
-        hklin thin.mtz\
-        hklout sorted.mtz > pointless.log <<+
-ALLOW OUTOFSEQUENCEFILES
-COPY
-TOLERANCE 5
-RUN BYFILE
-+
-
-    rm mid.mtz thin.mtz
-
-    # Everything together
-    aimless\
-        hklin sorted.mtz hklout scaled.mtz > aimless.log <<+
-resolution $HIRES
-exclude batches 75 to 81
-exclude batches 1075 to 1081
-exclude batches 2075 to 2081
-output unmerged
-+
-
-    # Just merge the reflections from the thick part of the crystal
-    aimless\
-        hklin scaled_unmerged.mtz hklout "${PREFIX}"thick.mtz > merge_thick.log <<+
-exclude batches 75 to 3000
-onlymerge
-+
-
-    # Just merge the reflections from the mid part of the crystal
-    aimless\
-        hklin scaled_unmerged.mtz hklout "${PREFIX}"mid.mtz > merge_mid.log <<+
-exclude batches 1 to 100
-exclude batches 2000 to 3000
-onlymerge
-+
-
-    # Just merge the reflections from the thin part of the crystal
-    aimless\
-        hklin scaled_unmerged.mtz hklout "${PREFIX}"thin.mtz > merge_thin.log <<+
-exclude batches 1 to 1100
-onlymerge
-+
-
-    # Truncate to get Fs for refinement
-    ctruncate -hklin "${PREFIX}thick.mtz" -hklout thick.mtz \
-        -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_thick.log
-    ctruncate -hklin "${PREFIX}mid.mtz" -hklout mid.mtz \
-        -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_mid.log
-    ctruncate -hklin "${PREFIX}thin.mtz" -hklout thin.mtz \
-        -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_thin.log
-
-    cd $PROCDIR
 }
 
 refine () {
@@ -267,36 +185,25 @@ make_plots() {
             "$PROCDIR"/scale_"$i"/lamella_"$i"_thin.mtz\
             "$PROCDIR"/scale_"$i"/lamella_"$i"_thick.mtz lamella"$i"_dials
 
-        # Scaled with Aimless
-        dials.python "$SCRIPTDIR"/qqplot.py\
-            "$PROCDIR"/aimless_"$i"/lamella_"$i"_thin.mtz\
-            "$PROCDIR"/aimless_"$i"/lamella_"$i"_thick.mtz lamella"$i"_aimless
 
     # Create composite PNG images for a report
         convert lamella_"$i"_thick.png lamella_"$i"_mid.png lamella_"$i"_thin.png\
             +append lamella_"$i"_positions.png
-
         convert -density 300 lamella"$i"_dials.pdf -trim +repage dials.png
-        convert -density 300 lamella"$i"_aimless.pdf -trim +repage aimless.png
         convert -density 300 lamella"$i"_unscaled.pdf -trim +repage unscaled.png
-        convert dials.png aimless.png unscaled.png +append lamella"$i"_QQ.png
-        rm dials.png aimless.png unscaled.png
-
-        for prog in "scale" "aimless"
-        do
-            convert -density 300 Fo_vs_Fc-"$prog"_"$i"-thick.pdf -trim +repage thick.png
-            convert -density 300 Fo_vs_Fc-"$prog"_"$i"-mid.pdf -trim +repage mid.png
-            convert -density 300 Fo_vs_Fc-"$prog"_"$i"-thin.pdf -trim +repage thin.png
-            convert thick.png mid.png thin.png +append Fo_vs_Fc-"$prog"_"$i".png
-            rm thick.png mid.png thin.png
-        done
+        convert dials.png  nscaled.png +append lamella"$i"_QQ.png
+        rm dials.png unscaled.png
+        convert -density 300 Fo_vs_Fc-scale_"$i"-thick.pdf -trim +repage thick.png
+        convert -density 300 Fo_vs_Fc-scale_"$i"-mid.pdf -trim +repage mid.png
+        convert -density 300 Fo_vs_Fc-scale_"$i"-thin.pdf -trim +repage thin.png
+        convert thick.png mid.png thin.png +append Fo_vs_Fc-scale_"$i".png
+        rm thick.png mid.png thin.png
     done
 
     # Remove links we no longer need here
     rm lamella_{1,2,3}_{thick,mid,thin}.png
 
     cd "$PROCDIR"
-
 }
 
 pedestal_test() {
@@ -426,18 +333,10 @@ dials_scale scale_1 lamella_1_ 2.0
 dials_scale scale_2 lamella_2_ 2.4
 dials_scale scale_3 lamella_3_ 2.1
 
-aimless_scale aimless_1 lamella_1_ 2.0
-aimless_scale aimless_2 lamella_2_ 2.4
-aimless_scale aimless_3 lamella_3_ 2.1
-
 # Refinement
 refine scale_1
 refine scale_2
 refine scale_3
-
-refine aimless_1
-refine aimless_2
-refine aimless_3
 
 # Plot creation
 make_plots
