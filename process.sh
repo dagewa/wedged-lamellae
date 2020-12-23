@@ -90,7 +90,7 @@ dials_scale () {
     PREFIX=$2
     HIRES=$3
 
-    echo "Scaling for $PREFIX with dials.scale"
+    echo "Simple scaling for $PREFIX with dials.scale"
     cd $PROCDIR
     mkdir -p $DIR
     cd $DIR
@@ -100,6 +100,7 @@ dials_scale () {
         $PROCDIR/"${PREFIX}thin"/integrated.expt $PROCDIR/"${PREFIX}thin"/integrated.refl\
         exclude_images=0:75:81 exclude_images=1:75:81 exclude_images=2:75:81\
         d_min=$HIRES\
+        physical.decay_correction=False physical.absorption_correction=False\
         error_model=None > /dev/null
     dials.split_experiments scaled.expt scaled.refl
     dials.merge split_0.expt split_0.refl output.mtz="${PREFIX}thick.mtz"
