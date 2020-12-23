@@ -287,8 +287,8 @@ untrusted {
     # Generate plots
     for i in 1 2 3
     do
-
         dials.python "$SCRIPTDIR"/cchalf_pedestal.py lamella_"$i" scale_"$i"_*
+        convert -density 300 lamella_"$i".pdf lamella_"$i".png
     done
 
     PROCDIR=$ORIG_PROCDIR
@@ -298,11 +298,10 @@ untrusted {
 # MAIN #
 ########
 
-# Uncomment below to investigate different pedestal levels
+# Uncomment below to investigate different pedestal levels (slow)
 #pedestal_test
 
-# Integrate with pedestal of -100. I tried various pedestal levels using
-# the lamella_3 datasets and found that this maximised the outer shell CC1/2.
+# Integrate with pedestal of -100. This might not be optimum (it isn't clear)
 # The assignment of datasets for thin, mid and thick come from assumption made
 # using the crystal images in supervisor_evb_nt23169-1/nt21004-140/saved_images
 
