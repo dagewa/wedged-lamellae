@@ -15,6 +15,7 @@ if __name__ == "__main__":
     dirs = sys.argv[2:]
     job_dirs = [os.path.split(os.path.abspath(e))[1] for e in dirs]
     pedestals = [float(e.split("_")[-1]) for e in job_dirs]
+    pedestals, job_dirs, dirs = zip(*sorted(zip(pedestals, job_dirs, dirs)))
 
     plot_data = []
     for pedestal, d in zip(pedestals, dirs):
