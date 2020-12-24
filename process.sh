@@ -192,7 +192,7 @@ make_plots() {
             +append lamella_"$i"_positions.png
         convert -density 300 lamella"$i"_dials.pdf -trim +repage dials.png
         convert -density 300 lamella"$i"_unscaled.pdf -trim +repage unscaled.png
-        convert dials.png  nscaled.png +append lamella"$i"_QQ.png
+        convert dials.png unscaled.png +append lamella"$i"_QQ.png
         rm dials.png unscaled.png
         convert -density 300 Fo_vs_Fc-scale_"$i"-thick.pdf -trim +repage thick.png
         convert -density 300 Fo_vs_Fc-scale_"$i"-mid.pdf -trim +repage mid.png
