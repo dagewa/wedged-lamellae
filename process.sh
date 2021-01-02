@@ -170,28 +170,29 @@ make_plots() {
     # Do various tasks for each lamella
     for i in 1 2 3
     do
-    # Q-Q plots
+    # Analysis plots
         # Unscaled - use links to give descriptive filename for the plot
         ln -sf "$PROCDIR"/lamella_"$i"_thin/unscaled_merged.mtz\
             lamella"$i"_unscaled_thin.mtz
         ln -sf "$PROCDIR"/lamella_"$i"_thick/unscaled_merged.mtz\
             lamella"$i"_unscaled_thick.mtz
-        dials.python "$SCRIPTDIR"/qqplot.py\
+        dials.python "$SCRIPTDIR"/analysis_plot.py\
             lamella"$i"_unscaled_thin.mtz lamella"$i"_unscaled_thick.mtz\
             lamella"$i"_unscaled
         rm lamella"$i"_unscaled_thin.mtz lamella"$i"_unscaled_thick.mtz
 
         # Scaled with dials.scale
-        dials.python "$SCRIPTDIR"/qqplot.py\
+        dials.python "$SCRIPTDIR"/analysis_plot.py\
             "$PROCDIR"/scale_"$i"/lamella_"$i"_thin.mtz\
             "$PROCDIR"/scale_"$i"/lamella_"$i"_thick.mtz lamella"$i"_dials
-
+        convert -density 300 -transparent white \
+            lamella"$i"_dials_dI.pdf lamella"$i"_dials_dI.png
 
     # Create composite PNG images for a report
         convert lamella_"$i"_thick.png lamella_"$i"_mid.png lamella_"$i"_thin.png\
             +append lamella_"$i"_positions.png
-        convert -density 300 lamella"$i"_dials.pdf -trim +repage dials.png
-        convert -density 300 lamella"$i"_unscaled.pdf -trim +repage unscaled.png
+        convert -density 300 lamella"$i"_dials_qq.pdf -trim +repage dials.png
+        convert -density 300 lamella"$i"_unscaled_qq.pdf -trim +repage unscaled.png
         convert dials.png unscaled.png +append lamella"$i"_QQ.png
         rm dials.png unscaled.png
         convert -density 300 Fo_vs_Fc-scale_"$i"-thick.pdf -trim +repage thick.png

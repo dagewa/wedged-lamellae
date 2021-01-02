@@ -20,11 +20,15 @@ def mtz_to_miller_array(filename, column="IMEAN"):
     )
     return miller.array(hkl_set, intensity.data)
 
+
 # Moving window average, general idea taken from
 # https://stackoverflow.com/questions/47484899/moving-average-produces-array-of-different-length
 def moving_average(x, N):
-    padded = np.pad(x, (N//2, N-1-N//2), mode='constant', constant_values=(None,))
+    padded = np.pad(
+        x, (N // 2, N - 1 - N // 2), mode="constant", constant_values=(None,)
+    )
     return np.convolve(padded, np.ones((N,)) / N, mode="valid")
+
 
 def diffI_plot(I1, I2):
     Imean = ((I1.data() + I2.data()) / 2).as_numpy_array()
@@ -42,8 +46,9 @@ def diffI_plot(I1, I2):
     fig, ax = plt.subplots()
     ax.scatter(Imean, Idiff, alpha=0.1, edgecolors="none")
     ax.plot(Imean, ma, color="red", alpha=0.5)
-    ax.set_xlim(-1,5)
-    ax.set_ylim(-2,2)
+    ax.set_facecolor("lightgrey")
+    ax.set_xlim(-1, 5)
+    ax.set_ylim(-2, 2)
 
     # Draw y=0 and x=0 lines
     ax.axhline(alpha=0.75, zorder=0)
@@ -100,6 +105,7 @@ def qq_plot(I1, I2, title):
     plt.savefig(title + "_qq.pdf")
     plt.close()
 
+
 if __name__ == "__main__":
 
     if len(sys.argv) == 5:
@@ -118,8 +124,12 @@ if __name__ == "__main__":
     print(f"{I1.size()} reflections are common")
 
     print("Five number summaries")
-    print("I1: {:.2f} {:.2f} {:.2f} {:.2f} {:.2f}".format(*five_number_summary(I1.data())))
-    print("I2: {:.2f} {:.2f} {:.2f} {:.2f} {:.2f}".format(*five_number_summary(I2.data())))
+    print(
+        "I1: {:.2f} {:.2f} {:.2f} {:.2f} {:.2f}".format(*five_number_summary(I1.data()))
+    )
+    print(
+        "I2: {:.2f} {:.2f} {:.2f} {:.2f} {:.2f}".format(*five_number_summary(I2.data()))
+    )
 
     # Plot of ΔI vs I
     diffI_plot(I1, I2)
