@@ -47,7 +47,7 @@ def diffI_plot(I1, I2):
     ax.scatter(Imean, Idiff, alpha=0.1, edgecolors="none")
     ax.plot(Imean, ma, color="red", alpha=0.5)
     ax.set_facecolor("lightgrey")
-    ax.set_xlim(-1, 5)
+    ax.set_xlim(-1, 15)
     ax.set_ylim(-2, 2)
 
     # Draw y=0 and x=0 lines
