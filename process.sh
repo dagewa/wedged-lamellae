@@ -46,9 +46,9 @@ integrate () {
     mkdir -p renamed-images
     cd renamed-images
     i=1
-    for file in $(ls "$DATADIR"/*.mrc)
+    for file in "$DATADIR"/*.mrc
     do
-        ln -sf "$file" $(printf "image_%03d.mrc" $i)
+        ln -sf "$file" "$(printf "image_%03d.mrc" $i)"
         i=$((i+1))
     done
     cd ..
@@ -59,7 +59,7 @@ integrate () {
       slow_fast_beam_centre="$BEAM_CENTRE"\
       panel.pedestal="$PEDESTAL"\
       mask=pixels.mask > /dev/null
-    if [ -z $STRONG ]; then
+    if [ -z "$STRONG" ]; then
         dials.find_spots imported.expt d_min=1.95 nproc=4 > /dev/null
     else
         echo "Copying strong spots from $PROCDIR/$STRONG"
@@ -92,15 +92,15 @@ dials_scale () {
     HIRES=$3
 
     echo "Simple scaling for $PREFIX with dials.scale"
-    cd $PROCDIR
-    mkdir -p $DIR
-    cd $DIR
+    cd "$PROCDIR"
+    mkdir -p "$DIR"
+    cd "$DIR"
     dials.scale\
-        $PROCDIR/"${PREFIX}thick"/integrated.expt $PROCDIR/"${PREFIX}thick"/integrated.refl\
-        $PROCDIR/"${PREFIX}mid"/integrated.expt $PROCDIR/"${PREFIX}mid"/integrated.refl\
-        $PROCDIR/"${PREFIX}thin"/integrated.expt $PROCDIR/"${PREFIX}thin"/integrated.refl\
+        "$PROCDIR/${PREFIX}thick"/integrated.expt "$PROCDIR/${PREFIX}thick"/integrated.refl\
+        "$PROCDIR/${PREFIX}mid"/integrated.expt "$PROCDIR/${PREFIX}mid"/integrated.refl\
+        "$PROCDIR/${PREFIX}thin"/integrated.expt "$PROCDIR/${PREFIX}thin"/integrated.refl\
         exclude_images=0:75:81 exclude_images=1:75:81 exclude_images=2:75:81\
-        d_min=$HIRES\
+        d_min="$HIRES"\
         physical.decay_correction=False physical.absorption_correction=False\
         error_model=None > /dev/null
     dials.split_experiments scaled.expt scaled.refl
@@ -116,8 +116,7 @@ dials_scale () {
     ctruncate -hklin "${PREFIX}thin.mtz" -hklout thin.mtz \
         -colin '/*/*/[IMEAN,SIGIMEAN]' > ctruncate_thin.log
 
-    cd $PROCDIR
-
+    cd "$PROCDIR"
 }
 
 refine () {
@@ -211,9 +210,9 @@ make_plots() {
 
 pedestal_test() {
     ORIG_PROCDIR=$PROCDIR
-    mkdir -p $PROCDIR/pedestal
-    cd $PROCDIR/pedestal
-    PROCDIR=$(pwd)
+    mkdir -p "$PROCDIR"/pedestal
+    cd "$PROCDIR"/pedestal
+    PROCDIR="$(pwd)"
 
     cat > mask.phil <<+
 untrusted {
@@ -228,18 +227,18 @@ untrusted {
         # lamella1
         integrate "$DATAROOT"/lamella_1_tilt_1/Images-Disc1/2019-04-24-155637.255\
             lamella_1_thick_"$PEDESTAL" "1017,1080" "$PEDESTAL" 0.0025 0.2\
-            $(find . -path ./lamella_1_thick_0/strong.refl)
+            "$(find . -path ./lamella_1_thick_0/strong.refl)"
         integrate "$DATAROOT"/lamella_1_tilt_2/Images-Disc1/2019-04-24-160547.199\
             lamella_1_mid_"$PEDESTAL" "1014,1082" "$PEDESTAL" 0.0025 0.2\
-            $(find . -path ./lamella_1_mid_-0/strong.refl)
+            "$(find . -path ./lamella_1_mid_-0/strong.refl)"
         integrate "$DATAROOT"/lamella_1_tilt_3/Images-Disc1/2019-04-24-161139.085\
             lamella_1_thin_"$PEDESTAL" "1012,1080" "$PEDESTAL" 0.0025 0.2\
-            $(find . -path ./lamella_1_thin_0/strong.refl)
+            "$(find . -path ./lamella_1_thin_0/strong.refl)"
         mkdir -p scale_1_"$PEDESTAL" && cd scale_1_"$PEDESTAL"
         dials.scale\
-            "$PROCDIR"/lamella_1_thick_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_1_thick_"$PEDESTAL"/integrated.refl\
-            "$PROCDIR"/lamella_1_mid_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_1_mid_"$PEDESTAL"/integrated.refl\
-            "$PROCDIR"/lamella_1_thin_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_1_thin_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_1_thick_"$PEDESTAL"/integrated.expt "$PROCDIR"/lamella_1_thick_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_1_mid_"$PEDESTAL"/integrated.expt "$PROCDIR"/lamella_1_mid_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_1_thin_"$PEDESTAL"/integrated.expt "$PROCDIR"/lamella_1_thin_"$PEDESTAL"/integrated.refl\
             exclude_images=0:75:81 exclude_images=1:75:81 exclude_images=2:75:81\
             d_max=10 d_min=2.0 error_model=None json=scale.json > /dev/null
         cd "$PROCDIR"
@@ -247,18 +246,18 @@ untrusted {
         # lamella2
         integrate "$DATAROOT"/lamella_2_tilt_1/Images-Disc1/2019-04-24-141357.568\
             lamella_2_thin_"$PEDESTAL" "1013,1033" "$PEDESTAL" 0.002 0.37\
-            $(find . -path ./lamella_2_thin_0/strong.refl)
+            "$(find . -path ./lamella_2_thin_0/strong.refl)"
         integrate "$DATAROOT"/lamella_2_tilt_2/Images-Disc1/2019-04-24-142502.849\
             lamella_2_mid_"$PEDESTAL" "1016,1037" "$PEDESTAL" 0.002 0.37\
-            $(find . -path ./lamella_2_mid_0/strong.refl)
+            "$(find . -path ./lamella_2_mid_0/strong.refl)"
         integrate "$DATAROOT"/lamella_2_tilt_3/Images-Disc1/2019-04-24-144238.540\
             lamella_2_thick_"$PEDESTAL" "1020,1090" "$PEDESTAL" 0.002 0.37\
-            $(find . -path ./lamella_2_thick_0/strong.refl)
+            "$(find . -path ./lamella_2_thick_0/strong.refl)"
         mkdir -p scale_2_"$PEDESTAL" && cd scale_2_"$PEDESTAL"
         dials.scale\
-            "$PROCDIR"/lamella_2_thick_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_2_thick_"$PEDESTAL"/integrated.refl\
-            "$PROCDIR"/lamella_2_mid_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_2_mid_"$PEDESTAL"/integrated.refl\
-            "$PROCDIR"/lamella_2_thin_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_2_thin_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_2_thick_"$PEDESTAL"/integrated.expt "$PROCDIR"/lamella_2_thick_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_2_mid_"$PEDESTAL"/integrated.expt "$PROCDIR"/lamella_2_mid_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_2_thin_"$PEDESTAL"/integrated.expt "$PROCDIR"/lamella_2_thin_"$PEDESTAL"/integrated.refl\
             exclude_images=0:75:81 exclude_images=1:75:81 exclude_images=2:75:81\
             d_max=10 d_min=2.4 error_model=None json=scale.json > /dev/null
         cd "$PROCDIR"
@@ -266,18 +265,18 @@ untrusted {
         # lamella3
         integrate "$DATAROOT"/lamella_3_tilt_1/Images-Disc1/2019-04-24-150408.105\
             lamella_3_thick_"$PEDESTAL" "1012,1084" "$PEDESTAL" 0.002 0.3\
-            $(find . -path ./lamella_3_thick_0/strong.refl)
+            "$(find . -path ./lamella_3_thick_0/strong.refl)"
         integrate "$DATAROOT"/lamella_3_tilt_2/Images-Disc1/2019-04-24-153550.410\
             lamella_3_mid_"$PEDESTAL" "1012,1084" "$PEDESTAL" 0.002 0.3\
-            $(find . -path ./lamella_3_mid_0/strong.refl)
+            "$(find . -path ./lamella_3_mid_0/strong.refl)"
         integrate "$DATAROOT"/lamella_3_tilt_3/Images-Disc1/2019-04-24-154246.731\
             lamella_3_thin_"$PEDESTAL" "1013,1080" "$PEDESTAL" 0.002 0.3\
-            $(find . -path ./lamella_3_thin_0/strong.refl)
+            "$(find . -path ./lamella_3_thin_0/strong.refl)"
         mkdir -p scale_3_"$PEDESTAL" && cd scale_3_"$PEDESTAL"
         dials.scale\
-            "$PROCDIR"/lamella_3_thick_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_3_thick_"$PEDESTAL"/integrated.refl\
-            "$PROCDIR"/lamella_3_mid_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_3_mid_"$PEDESTAL"/integrated.refl\
-            "$PROCDIR"/lamella_3_thin_"$PEDESTAL"/integrated.expt $PROCDIR/lamella_3_thin_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_3_thick_"$PEDESTAL"/integrated.expt "$PROCDIR"/lamella_3_thick_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_3_mid_"$PEDESTAL"/integrated.expt "$PROCDIR"/lamella_3_mid_"$PEDESTAL"/integrated.refl\
+            "$PROCDIR"/lamella_3_thin_"$PEDESTAL"/integrated.expt "$PROCDIR"/lamella_3_thin_"$PEDESTAL"/integrated.refl\
             exclude_images=0:75:81 exclude_images=1:75:81 exclude_images=2:75:81\
             d_max=10 d_min=2.1 error_model=None json=scale.json > /dev/null
         cd "$PROCDIR"
@@ -298,9 +297,9 @@ untrusted {
 ########
 
 # Uncomment below to investigate different pedestal levels (slow)
-pedestal_test
+#pedestal_test
 
-# Integrate with pedestal of -100. This might not be optimum (it isn't clear)
+# Integrate with pedestal of -100. It isn't clear if this is optimal.
 # The assignment of datasets for thin, mid and thick come from assumption made
 # using the crystal images in supervisor_evb_nt23169-1/nt21004-140/saved_images
 
